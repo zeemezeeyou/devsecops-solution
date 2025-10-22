@@ -1,1 +1,31 @@
+name: DevSecOps CI/CD Pipeline to Azure
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# ตั้งค่าสิทธิ์ที่จำเป็นทั้งหมด
+# permissions:
+#   contents: read
+#   packages: write
+#   pull-requests: write
+#   actions: read
+
+jobs:
+  build_and_scan:
+    name: Scan & Quality Gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'app/package.json' 
 
