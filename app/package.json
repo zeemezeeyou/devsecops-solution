@@ -7,7 +7,6 @@
   },
   "scripts": {
     "start": "node index.js",
-    "test": "jest --coverage --forceExit",
     "sonar": "node_modules/sonar-scanner/bin/sonar-scanner"
   },
   "devDependencies": {

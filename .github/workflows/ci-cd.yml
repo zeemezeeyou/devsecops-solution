@@ -48,4 +48,25 @@ jobs:
             -Dsonar.organization=zeemezeeyou \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.sources=
+            -Dsonar.sources=app
+
+      - name: Delay to ensure Quality Gate Status is ready
+        run: echo "Waiting for 30 seconds for SonarQube processing..." && sleep 30s
+        
+      # 2. Security Gate: ตรวจสอบ Quality Gate (ใช้ First-Party Action + Script)
+      - name: Check SonarQube Quality Gate Status
+        id: wait_and_check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { checkQualityGate } = require('./.github/workflows/sonar-check-script.js');
+            // ส่งค่า Secrets ไปให้ script ใช้โดยตรง
+            await checkQualityGate({
+              github, 
+              core, 
+              fetch,
+              projectKey: 'kitthapat-j_devsecops-fullsolution'
+            });
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
