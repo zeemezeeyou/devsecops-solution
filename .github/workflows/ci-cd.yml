@@ -7,11 +7,11 @@ on:
     branches: [ "main" ]
 
 # ตั้งค่าสิทธิ์ที่จำเป็นทั้งหมด
-# permissions:
-#   contents: read
-#   packages: write
-#   pull-requests: write
-#   actions: read
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+  actions: read
 
 jobs:
   build_and_scan:
@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-          cache-dependency-path: 'app/package.json'
+          cache-dependency-path: 'app/package.json' 
 
       # ติดตั้ง sonar-scanner globally เพื่อให้คำสั่ง npm run sonar ใช้งานได้
       - name: Install Global Sonar Scanner
@@ -36,6 +36,11 @@ jobs:
       - name: Install App Dependencies
         run: npm install --prefix app
 
+      # คำสั่งนี้จะใช้ 'jest --coverage' จาก package.json เพื่อสร้าง app/coverage/lcov.info
+      - name: Run Unit Tests and Generate Coverage Report (LCOV)
+        run: npx jest --coverage --config app/package.json --forceExit
+
+        
       # 1. รัน SonarQube Scan
       - name: SonarQube Scan
         env:
@@ -48,11 +53,13 @@ jobs:
             -Dsonar.organization=zeemezeeyou \
             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }} \
             -Dsonar.token=${{ secrets.SONAR_TOKEN }} \
-            -Dsonar.sources=app
+            -Dsonar.sources=app \
+            -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info \
+            -Dsonar.coverage.exclusions=app/index.js
 
       - name: Delay to ensure Quality Gate Status is ready
-        run: echo "Waiting for 30 seconds for SonarQube processing..." && sleep 30s
-
+        run: echo "Waiting for 30 seconds for SonarQube processing..." && sleep 30s 
+                   
       # 2. Security Gate: ตรวจสอบ Quality Gate (ใช้ First-Party Action + Script)
       - name: Check SonarQube Quality Gate Status
         id: wait_and_check
@@ -70,3 +77,36 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }} 
+          #client-id: ${{ secrets.AZURE_CLIENT_ID }} 
+          #tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          #subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          #service-principal-password: ${{ secrets.AZURE_CLIENT_SECRET }} testttt
+      
+         
+      # สร้างไฟล์ ZIP ของแอปพลิเคชันเพื่อ Deploy
+      - name: Create Deployment Package
+      # บีบอัดเฉพาะโฟลเดอร์ app/ (ซึ่งมี index.js และ node_modules) rrr
+        run: zip -r deploy_package.zip app/
+
+      - name: 'Deploy to Azure WebApp'
+        uses: azure/webapps-deploy@v2
+        with:
+          # การ Login โดยใช้ Service Principal JSON (ควรถูกจัดเก็บใน AZURE_CREDENTIALS secret)
+          #creds: ${{ secrets.AZURE_CREDENTIALS }}
+          # ชื่อ Azure App Service (ควรถูกจัดเก็บใน AZURE_WEBAPP_NAME secret)
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          # โฟลเดอร์ที่ต้องการ Deploy
+          package: deploy_package.zip
+          # กำหนดให้ใช้ start command ใน package.json
+          startup-command: "node index.js"
+
