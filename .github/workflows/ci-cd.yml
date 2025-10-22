@@ -52,7 +52,7 @@ jobs:
 
       - name: Delay to ensure Quality Gate Status is ready
         run: echo "Waiting for 30 seconds for SonarQube processing..." && sleep 30s
-        
+
       # 2. Security Gate: ตรวจสอบ Quality Gate (ใช้ First-Party Action + Script)
       - name: Check SonarQube Quality Gate Status
         id: wait_and_check
@@ -65,7 +65,7 @@ jobs:
               github, 
               core, 
               fetch,
-              projectKey: 'kitthapat-j_devsecops-fullsolution'
+              projectKey: 'zeemezeeyou_devsecops-solution'
             });
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
